@@ -1,4 +1,5 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 
 module Lib
   ( Node (..),
@@ -30,13 +31,13 @@ data Size t = Size
   deriving (Show)
 
 instance Functor Size where
-  fmap f size = Size {width = f $ width size, height = f $ height size}
+  fmap f size = Size {width = f size.width, height = f size.height}
 
 instance Applicative Size where
   pure a = Size {width = a, height = a}
 
   Size {width = f, height = g} <*> size =
-    Size {width = f $ width size, height = g $ width size}
+    Size {width = f size.width, height = g size.height}
 
 sizeToAbs dimensionSize parentSize = toAbs <$> dimensionSize <*> parentSize
 
@@ -48,10 +49,11 @@ data Style = Style
   }
   deriving (Show)
 
-defaultStyle = Style {
-  size = Size { width = Points 0 , height = Points 0},
-  direction = Row
-}
+defaultStyle =
+  Style
+    { size = Size {width = Points 0, height = Points 0},
+      direction = Row
+    }
 
 data Node = Node
   { style :: Style,
@@ -61,7 +63,7 @@ data Node = Node
 
 data Layout = Layout
   { point :: Point Float,
-    layoutSize :: Size Float
+    size :: Size Float
   }
   deriving (Show)
 
@@ -72,15 +74,15 @@ layout node outerSize = layout' node outerSize (Point 0 0)
   where
     layout' childNode parentSize pos =
       LayoutNode
-        (Layout {point = pos, layoutSize = s})
+        (Layout {point = pos, size = s})
         (snd $ foldr f (pos, []) (nodes childNode))
       where
-        s = sizeToAbs (size (style childNode)) parentSize
-        f n (p, acc) =
+        s = sizeToAbs childNode.style.size parentSize
+        f n (point, acc) =
           ( case direction (style childNode) of
-              Row -> Point {x = x p + width (layoutSize nodeLayout), y = y p}
-              Column -> Point {x = x p, y = y p + height (layoutSize nodeLayout)},
+              Row -> point {x = point.x + width nodeLayout.size}
+              Column -> point {y = y point + height nodeLayout.size},
             acc ++ [LayoutNode nodeLayout nodeChildren]
           )
           where
-            (LayoutNode nodeLayout nodeChildren) = layout' n s p
+            (LayoutNode nodeLayout nodeChildren) = layout' n s point
