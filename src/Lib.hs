@@ -39,6 +39,7 @@ instance Applicative Size where
   Size {width = f, height = g} <*> size =
     Size {width = f size.width, height = g size.height}
 
+sizeToAbs :: (Applicative f) => f Dimension -> f Float -> f Float
 sizeToAbs dimensionSize parentSize = toAbs <$> dimensionSize <*> parentSize
 
 data Direction = Row | Column deriving (Show)
@@ -49,6 +50,7 @@ data Style = Style
   }
   deriving (Show)
 
+defaultStyle :: Style
 defaultStyle =
   Style
     { size = Size {width = Points 0, height = Points 0},
@@ -61,28 +63,27 @@ data Node = Node
   }
   deriving (Show)
 
-data Layout = Layout
-  { point :: Point Float,
-    size :: Size Float
+data LayoutNode = LayoutNode
+  { size :: Size Float,
+    nodes :: [LayoutNode]
   }
   deriving (Show)
 
-data LayoutNode = LayoutNode Layout [LayoutNode] deriving (Show)
-
+-- | Calculate the initial layout.
 layout :: Node -> Size Float -> LayoutNode
 layout node outerSize = layout' node outerSize (Point 0 0)
   where
     layout' childNode parentSize pos =
       LayoutNode
-        (Layout {point = pos, size = s})
-        (snd $ foldr f (pos, []) (nodes childNode))
+        size
+        (snd $ foldr go (pos, []) childNode.nodes)
       where
-        s = sizeToAbs childNode.style.size parentSize
-        f n (point, acc) =
-          ( case direction (style childNode) of
-              Row -> point {x = point.x + width nodeLayout.size}
-              Column -> point {y = y point + height nodeLayout.size},
-            acc ++ [LayoutNode nodeLayout nodeChildren]
+        size = sizeToAbs childNode.style.size parentSize
+        go innerNode (point, acc) =
+          ( case direction childNode.style of
+              Row -> point {x = point.x + width layoutNode.size}
+              Column -> point {y = y point + height layoutNode.size},
+            acc ++ [layoutNode]
           )
           where
-            (LayoutNode nodeLayout nodeChildren) = layout' n s point
+            layoutNode = layout' innerNode size point
