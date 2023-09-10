@@ -22,7 +22,11 @@ toFixed Auto = Nothing
 sizeToAbs :: (Applicative f) => f FixedDimension -> f Float -> f Float
 sizeToAbs dimensionSize parentSize = toAbs <$> dimensionSize <*> parentSize
 
-fMaybeFixedToAbs :: (Applicative f) => f (Maybe FixedDimension) -> f (Maybe Float) -> f (Maybe Float)
+fMaybeFixedToAbs ::
+  (Applicative f) =>
+  f (Maybe FixedDimension) ->
+  f (Maybe Float) ->
+  f (Maybe Float)
 fMaybeFixedToAbs dimensionSize parentSize = maybeToAbs <$> dimensionSize <*> parentSize
 
 fMaybeToAbs :: (Applicative f) => f Dimension -> f (Maybe Float) -> f (Maybe Float)

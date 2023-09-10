@@ -68,7 +68,9 @@ layoutSize style knownDims parentSize availableSpace =
       margin = toAbsOrZero style.margin parentSize.width
       availableSpaceSize =
         Size
-          { width = (\px -> px - horizontalSum margin) <$> intoPixels availableSpace.width,
+          { width =
+              (\px -> px - horizontalSum margin)
+                <$> intoPixels availableSpace.width,
             height = Nothing
           }
    in maybeOr <$> knownDims <*> (maybeOr <$> clampedSize <*> availableSpaceSize)
