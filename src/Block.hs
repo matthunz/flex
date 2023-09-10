@@ -4,6 +4,7 @@
 module Block where
 
 import Data.Function ((&))
+import Data.Maybe (fromMaybe)
 import Dimension
 import Flex
 import Geometry
@@ -159,12 +160,20 @@ nodeSize ::
   Size AvailableSpace ->
   Size Float
 nodeSize node knownDims parentSize availableSpace =
-  let items = mkItems node.nodes knownDims
-      border = fixedToAbsOrZero (Just <$> node.style.border) parentSize.width
-      padding = fixedToAbsOrZero (Just <$> node.style.border) parentSize.width
-      inset = (+) <$> border <*> padding
+  let -- Convert child nodes into block items
+      items = mkItems node.nodes knownDims
+
+      -- Calculate the width
       width = layoutWidth node.style items parentSize availableSpace
-      (height, _) = layoutHeight node.style items width inset
-   in case knownDims.height of
-        Just knownHeight -> Size {width = width, height = knownHeight}
-        Nothing -> Size {width = width, height = height}
+
+      -- Lazily resolve the height when it's unknown
+      toAbsWithWidth field =
+        fixedToAbsOrZero (Just <$> field node.style) parentSize.width
+      border = toAbsWithWidth Style.border
+      padding = toAbsWithWidth Style.padding
+      inset = (+) <$> border <*> padding
+      (resolvedHeight, _) = layoutHeight node.style items width inset
+
+      -- Calculate the height
+      height = fromMaybe resolvedHeight knownDims.height
+   in Size width height
