@@ -5,20 +5,33 @@ module Lib
   ( Node (..),
     Style (..),
     Size (..),
-    Dimension (..),
+    FixedDimension (..),
+    Dimension(..),
     defaultStyle,
     Direction (..),
-    layout,
+    layoutSize,
+    fMaybeToAbs
   )
 where
 
 import Data.Function ((&))
 
-data Dimension = Points Float | Percent Float deriving (Show)
+data FixedDimension = Points Float | Percent Float deriving (Show)
 
-toAbs :: Dimension -> Float -> Float
+toAbs :: FixedDimension -> Float -> Float
 toAbs (Points points) _ = points
 toAbs (Percent percent) parent = percent * parent
+
+maybeToAbs :: Maybe FixedDimension -> Maybe Float -> Maybe Float
+maybeToAbs (Just (Points points)) _ = Just points
+maybeToAbs (Just (Percent percent)) (Just parent) = Just $ percent * parent
+maybeToAbs _ _ = Nothing
+
+data Dimension = Fixed FixedDimension | Auto deriving (Show)
+
+toFixed :: Dimension -> Maybe FixedDimension
+toFixed (Fixed dim) = Just dim
+toFixed Auto = Nothing
 
 data Point t = Point
   { x :: t,
@@ -41,11 +54,24 @@ instance Applicative Size where
   Size {width = f, height = g} <*> size =
     Size {width = f size.width, height = g size.height}
 
-sizeToAbs :: (Applicative f) => f Dimension -> f Float -> f Float
+sizeToAbs :: (Applicative f) => f FixedDimension -> f Float -> f Float
 sizeToAbs dimensionSize parentSize = toAbs <$> dimensionSize <*> parentSize
 
-maybeSizeToAbs :: (Applicative f) => f (Maybe Dimension) -> f (Maybe Float) -> f (Maybe Float)
-maybeSizeToAbs dimensionSize parentSize = sizeToAbs <$> dimensionSize <*> parentSize
+fMaybeFixedToAbs :: (Applicative f) => f (Maybe FixedDimension) -> f (Maybe Float) -> f (Maybe Float)
+fMaybeFixedToAbs dimensionSize parentSize = maybeToAbs <$> dimensionSize <*> parentSize
+
+fMaybeToAbs :: (Applicative f) => f Dimension -> f (Maybe Float) -> f (Maybe Float)
+fMaybeToAbs size = fMaybeFixedToAbs (fmap toFixed size)
+
+maybeClamp :: Maybe Float -> Maybe Float -> Maybe Float -> Maybe Float
+maybeClamp (Just val) minVal maxVal =
+  let val = case minVal of
+        Just minVal -> max val minVal
+        Nothing -> val
+   in Just $ case maxVal of
+        Just maxVal -> min val maxVal
+        Nothing -> val
+maybeClamp Nothing _ _ = Nothing
 
 data Direction = Row | Column deriving (Show)
 
@@ -53,6 +79,8 @@ data Display = Block | None deriving (Eq, Show)
 
 data Style = Style
   { size :: Size Dimension,
+    minSize :: Size Dimension,
+    maxSize :: Size Dimension,
     direction :: Direction,
     display :: Display
   }
@@ -61,7 +89,10 @@ data Style = Style
 defaultStyle :: Style
 defaultStyle =
   Style
-    { size = Size {width = Points 0, height = Points 0},
+    { display = Block,
+      size = pure . Fixed $ Points 0,
+      minSize = pure . Fixed $ Points 0,
+      maxSize = pure Auto,
       direction = Row
     }
 
@@ -77,25 +108,6 @@ data LayoutNode = LayoutNode
   }
   deriving (Show)
 
--- | Calculate the initial layout.
-layout :: Node -> Size Float -> LayoutNode
-layout node outerSize = layout' node outerSize (Point 0 0)
-  where
-    layout' childNode parentSize pos =
-      LayoutNode
-        size
-        (snd $ foldr go (pos, []) childNode.nodes)
-      where
-        size = sizeToAbs childNode.style.size parentSize
-        go innerNode (point, acc) =
-          ( case direction childNode.style of
-              Row -> point {x = point.x + width layoutNode.size}
-              Column -> point {y = y point + height layoutNode.size},
-            acc ++ [layoutNode]
-          )
-          where
-            layoutNode = layout' innerNode size point
-
 data BlockItem = BlockItem
   { order :: Int,
     size :: Size (Maybe Float)
@@ -107,7 +119,18 @@ mkItems styles innerSize =
       ( \order style ->
           BlockItem
             { order = order,
-              size = maybeSizeToAbs style.size innerSize
+              size = fMaybeFixedToAbs style.size innerSize
             }
       )
       [0 ..]
+
+maybeOr (Just a) _ = Just a
+maybeOr Nothing b = b
+
+layoutSize :: Style -> Size (Maybe Float) -> Size (Maybe Float) -> Size (Maybe Float)
+layoutSize style knownDims parentSize =
+  let minSize = fMaybeToAbs style.minSize parentSize
+      maxSize = fMaybeToAbs style.maxSize parentSize
+      size = fMaybeToAbs style.size parentSize
+      clampedSize = maybeClamp <$> size <*> minSize <*> maxSize
+   in maybeOr <$> knownDims <*> size
