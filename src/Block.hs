@@ -25,14 +25,22 @@ layout ::
   Size Float
 layout node knownDims parentSize availableSpace =
   let styleKnownDims = layoutSize node.style knownDims parentSize availableSpace
-   in mkNodeLayout node styleKnownDims availableSpace
+   in mkNodeLayout node styleKnownDims parentSize availableSpace
 
-mkNodeLayout :: Node -> Size (Maybe Float) -> Size AvailableSpace -> Size Float
-mkNodeLayout node knownDims availableSpace =
+mkNodeLayout :: Node -> Size (Maybe Float) -> Size (Maybe Float) -> Size AvailableSpace -> Size Float
+mkNodeLayout node knownDims parentSize availableSpace =
   let items = mkItems node.nodes knownDims
-      containerOuterWidth = mkContentWidth items availableSpace.width
+      contentWidth = mkContentWidth items availableSpace.width
+      minSize = fMaybeToAbs node.style.minSize parentSize
+      maxSize = fMaybeToAbs node.style.maxSize parentSize
+      minOuterWidth = case minSize.width of
+        Just m -> max m contentWidth  
+        Nothing -> contentWidth
+      outerWidth = case maxSize.width of
+        Just m -> min m minOuterWidth  
+        Nothing -> minOuterWidth
    in case knownDims.height of
-        Just height -> Size {width = containerOuterWidth, height = height}
+        Just height -> Size {width = outerWidth, height = height}
         Nothing -> error ""
 
 data BlockItem = BlockItem
@@ -62,6 +70,7 @@ mkContentWidth items availableSpace =
           width $
             mkNodeLayout
               item.node
+              (pure Nothing)
               (pure Nothing)
               Size {width = availableSpace, height = MinContent}
       )
