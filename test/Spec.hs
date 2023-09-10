@@ -16,11 +16,15 @@ main = hspec $ do
         (pure MaxContent)
         `shouldBe` Size 0 0
 
-    it "calculates the size for a container of two fixed-size nodes" $ do
+    it "calculates the size of a container with nested nodes" $ do
       nodeSize
         ( Node
             defaultStyle
-            [ Node defaultStyle {Style.minSize = pure (Fixed $ Points 100)} [],
+            [ Node
+                defaultStyle
+                [ Node defaultStyle {Style.minSize = pure (Fixed $ Points 50)} [],
+                  Node defaultStyle {Style.minSize = pure (Fixed $ Points 50)} []
+                ],
               Node defaultStyle {Style.minSize = pure (Fixed $ Points 100)} []
             ]
         )
