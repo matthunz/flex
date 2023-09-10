@@ -12,6 +12,8 @@ module Lib
   )
 where
 
+import Data.Function ((&))
+
 data Dimension = Points Float | Percent Float deriving (Show)
 
 toAbs :: Dimension -> Float -> Float
@@ -42,11 +44,17 @@ instance Applicative Size where
 sizeToAbs :: (Applicative f) => f Dimension -> f Float -> f Float
 sizeToAbs dimensionSize parentSize = toAbs <$> dimensionSize <*> parentSize
 
+maybeSizeToAbs :: (Applicative f) => f (Maybe Dimension) -> f (Maybe Float) -> f (Maybe Float)
+maybeSizeToAbs dimensionSize parentSize = sizeToAbs <$> dimensionSize <*> parentSize
+
 data Direction = Row | Column deriving (Show)
+
+data Display = Block | None deriving (Eq, Show)
 
 data Style = Style
   { size :: Size Dimension,
-    direction :: Direction
+    direction :: Direction,
+    display :: Display
   }
   deriving (Show)
 
@@ -87,3 +95,19 @@ layout node outerSize = layout' node outerSize (Point 0 0)
           )
           where
             layoutNode = layout' innerNode size point
+
+data BlockItem = BlockItem
+  { order :: Int,
+    size :: Size (Maybe Float)
+  }
+
+mkItems styles innerSize =
+  filter (\style -> style.display /= None) styles
+    & zipWith
+      ( \order style ->
+          BlockItem
+            { order = order,
+              size = maybeSizeToAbs style.size innerSize
+            }
+      )
+      [0 ..]
