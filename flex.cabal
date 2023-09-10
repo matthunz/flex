@@ -26,8 +26,8 @@ source-repository head
 library
   exposed-modules:
       Dimension
+      Flex
       Geometry
-      Lib
       Style
   other-modules:
       Paths_flex

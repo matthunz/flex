@@ -9,13 +9,13 @@ import Geometry
 import Style
 
 maybeClamp :: Maybe Float -> Maybe Float -> Maybe Float -> Maybe Float
-maybeClamp (Just val) minVal maxVal =
-  let val = case minVal of
+maybeClamp (Just val) minValCell maxValCell =
+  let clamped = case minValCell of
         Just minVal -> max val minVal
         Nothing -> val
-   in Just $ case maxVal of
-        Just maxVal -> min val maxVal
-        Nothing -> val
+   in Just $ case maxValCell of
+        Just maxVal -> min clamped maxVal
+        Nothing -> clamped
 maybeClamp Nothing _ _ = Nothing
 
 data Node = Node
@@ -51,10 +51,24 @@ maybeOr :: Maybe a -> Maybe a -> Maybe a
 maybeOr (Just a) _ = Just a
 maybeOr Nothing b = b
 
+-- | Calculate the size of a block item.
 layoutSize :: Style -> Size (Maybe Float) -> Size (Maybe Float) -> Size (Maybe Float)
 layoutSize style knownDims parentSize =
   let minSize = fMaybeToAbs style.minSize parentSize
       maxSize = fMaybeToAbs style.maxSize parentSize
       size = fMaybeToAbs style.size parentSize
       clampedSize = maybeClamp <$> size <*> minSize <*> maxSize
-   in maybeOr <$> knownDims <*> size
+   in maybeOr <$> knownDims <*> clampedSize
+
+data AvailableSpace = Pixels Float | MinContent | MaxContent
+
+intoPixels :: AvailableSpace -> Maybe Float
+intoPixels (Pixels px) = Just px
+intoPixels _ = Nothing
+
+mkLayout :: Style -> Size AvailableSpace -> Size (Maybe Float)
+mkLayout style availableSpace =
+  layoutSize
+    style
+    (pure Nothing)
+    (fmap intoPixels availableSpace)
