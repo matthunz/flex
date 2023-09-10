@@ -52,4 +52,5 @@ instance Applicative Rect where
         right = r rect.right
       }
 
+horizontalSum :: Rect Float -> Float
 horizontalSum rect = rect.left + rect.right

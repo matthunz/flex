@@ -30,23 +30,6 @@ data LayoutNode = LayoutNode
   }
   deriving (Show)
 
-data BlockItem = BlockItem
-  { order :: Int,
-    size :: Size (Maybe Float)
-  }
-
-mkItems :: [Style] -> Size (Maybe Float) -> [BlockItem]
-mkItems styles innerSize =
-  filter (\style -> style.display /= None) styles
-    & zipWith
-      ( \order style ->
-          BlockItem
-            { order = order,
-              size = fMaybeToAbs style.size innerSize
-            }
-      )
-      [0 ..]
-
 maybeOr :: Maybe a -> Maybe a -> Maybe a
 maybeOr (Just a) _ = Just a
 maybeOr Nothing b = b
@@ -102,3 +85,43 @@ mkLayout style availableSpace =
     (pure Nothing)
     (fmap intoPixels availableSpace)
     availableSpace
+
+data BlockItem = BlockItem
+  { order :: Int,
+    size :: Size (Maybe Float),
+    node :: Node
+  }
+
+mkItems :: [Node] -> Size (Maybe Float) -> [BlockItem]
+mkItems nodes innerSize =
+  filter (\node -> node.style.display /= None) nodes
+    & zipWith
+      ( \order node ->
+          BlockItem
+            { order = order,
+              size = fMaybeToAbs node.style.size innerSize,
+              node = node
+            }
+      )
+      [0 ..]
+
+mkNodeLayout :: Node -> Size (Maybe Float) -> Size AvailableSpace -> Size Float
+mkNodeLayout node knownDims availableSpace =
+  let items = mkItems node.nodes knownDims
+      containerOuterWidth = mkContentWidth items availableSpace.width
+   in case knownDims.height of
+        Just height -> Size {width = containerOuterWidth, height = height}
+        Nothing -> error ""
+
+mkContentWidth :: [BlockItem] -> AvailableSpace -> Float
+mkContentWidth items availableSpace =
+  sum $
+    map
+      ( \item ->
+          width $
+            mkNodeLayout
+              item.node
+              (pure Nothing)
+              Size {width = availableSpace, height = MinContent}
+      )
+      items
