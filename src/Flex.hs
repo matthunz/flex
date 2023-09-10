@@ -64,6 +64,18 @@ layoutSize style knownDims parentSize availableSpace =
       size = fMaybeToAbs style.size parentSize
       clampedSize = maybeClamp <$> size <*> minSize <*> maxSize
 
+      -- If both min and max in a given axis are set and max <= min
+      -- then this determines the size in that axis.
+      minMaxSize =
+        ( \maybeMin maybeMax ->
+            case (maybeMin, maybeMax) of
+              (Just minVal, Just maxVal) ->
+                if maxVal <= minVal then Just minVal else Nothing
+              _ -> Nothing
+        )
+          <$> minSize
+          <*> maxSize
+
       -- Stretch to fit width of definite available space
       margin = toAbsOrZero style.margin parentSize.width
       availableSpaceSize =
@@ -73,7 +85,9 @@ layoutSize style knownDims parentSize availableSpace =
                 <$> intoPixels availableSpace.width,
             height = Nothing
           }
-   in maybeOr <$> knownDims <*> (maybeOr <$> clampedSize <*> availableSpaceSize)
+   in maybeOr
+        <$> knownDims
+        <*> (maybeOr <$> minMaxSize <*> (maybeOr <$> clampedSize <*> availableSpaceSize))
 
 data AvailableSpace = Pixels Float | MinContent | MaxContent
 
