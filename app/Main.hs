@@ -2,6 +2,7 @@ module Main (main) where
 
 import Dimension
 import Flex
+import Block
 import Style
 
 main :: IO ()
