@@ -59,12 +59,18 @@ layoutSize ::
   Size AvailableSpace ->
   Size (Maybe Float)
 layoutSize style knownDims parentSize availableSpace =
-  let 
-      minSize = fMaybeToAbs style.minSize parentSize
+  let minSize = fMaybeToAbs style.minSize parentSize
       maxSize = fMaybeToAbs style.maxSize parentSize
       size = fMaybeToAbs style.size parentSize
       clampedSize = maybeClamp <$> size <*> minSize <*> maxSize
-      availableSpaceSize = Size (intoPixels availableSpace.width) Nothing
+
+      -- Stretch to fit width of definite available space
+      margin = toAbsOrZero style.margin parentSize.width
+      availableSpaceSize =
+        Size
+          { width = (\px -> px - horizontalSum margin) <$> intoPixels availableSpace.width,
+            height = Nothing
+          }
    in maybeOr <$> knownDims <*> (maybeOr <$> clampedSize <*> availableSpaceSize)
 
 data AvailableSpace = Pixels Float | MinContent | MaxContent
