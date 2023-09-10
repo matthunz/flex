@@ -12,7 +12,9 @@ data Style = Style
     maxSize :: Size Dimension,
     direction :: Direction,
     display :: Display,
-    margin :: Rect Dimension
+    margin :: Rect Dimension,
+    border :: Rect FixedDimension,
+    padding :: Rect FixedDimension
   }
   deriving (Show)
 
