@@ -124,7 +124,7 @@ flowLayout items outerWidth inset resolvedInset =
       f item (offset, acc) =
         let itemSize = nodeSize item.node (pure Nothing) parentSize availableSpace
          in (offset + itemSize.height, acc ++ [Layout {order = item.order, size = itemSize}])
-   in foldr f (0, []) items
+   in foldr f (resolvedInset.top, []) items
 
 layoutWidth ::
   Style ->

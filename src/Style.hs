@@ -1,6 +1,7 @@
 module Style where
-import Geometry
+
 import Dimension
+import Geometry
 
 data Direction = Row | Column deriving (Show)
 
@@ -26,6 +27,7 @@ defaultStyle =
       minSize = pure . Fixed $ Points 0,
       maxSize = pure Auto,
       direction = Row,
-      margin = pure . Fixed $ Points 0
+      margin = pure . Fixed $ Points 0,
+      border = pure $ Points 0,
+      padding = pure $ Points 0
     }
-
