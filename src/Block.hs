@@ -68,7 +68,7 @@ mkContentWidth items availableSpace =
     map
       ( \item ->
           width $
-            mkNodeLayout
+            nodeSize
               item.node
               (pure Nothing)
               (pure Nothing)
@@ -120,19 +120,19 @@ flowLayout items outerWidth inset resolvedInset =
       parentSize = Size {width = Just outerWidth, height = Nothing}
       availableSpace = Size {width = Pixels innerWidth, height = MinContent}
 
+      f :: BlockItem -> (Float, [Layout]) -> (Float, [Layout])
       f item (offset, acc) =
-        let itemSize = mkNodeLayout item.node (pure Nothing) parentSize availableSpace
-         in (offset, acc ++ [Layout {order = item.order, size = itemSize}])
+        let itemSize = nodeSize item.node (pure Nothing) parentSize availableSpace
+         in (offset + itemSize.height, acc ++ [Layout {order = item.order, size = itemSize}])
    in foldr f (0, []) items
 
 layoutWidth ::
   Style ->
   [BlockItem] ->
   Size (Maybe Float) ->
-  Size (Maybe Float) ->
   Size AvailableSpace ->
   Float
-layoutWidth style items knownDims parentSize availableSpace =
+layoutWidth style items parentSize availableSpace =
   let contentWidth = mkContentWidth items availableSpace.width
       minSize = fMaybeToAbs style.minSize parentSize
       maxSize = fMaybeToAbs style.maxSize parentSize
@@ -163,7 +163,7 @@ nodeSize node knownDims parentSize availableSpace =
       border = fixedToAbsOrZero (Just <$> node.style.border) parentSize.width
       padding = fixedToAbsOrZero (Just <$> node.style.border) parentSize.width
       inset = (+) <$> border <*> padding
-      width = layoutWidth node.style items knownDims parentSize availableSpace
+      width = layoutWidth node.style items parentSize availableSpace
       (height, _) = layoutHeight node.style items width inset
    in case knownDims.height of
         Just knownHeight -> Size {width = width, height = knownHeight}

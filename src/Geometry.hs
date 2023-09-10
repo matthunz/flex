@@ -13,7 +13,7 @@ data Size t = Size
   { width :: t,
     height :: t
   }
-  deriving (Show)
+  deriving (Eq, Show)
 
 instance Functor Size where
   fmap f size = Size {width = f size.width, height = f size.height}

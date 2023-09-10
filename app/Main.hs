@@ -5,9 +5,15 @@ import Dimension
 import Flex
 import Style
 
+
 main :: IO ()
 main =
   print $
-    mkLayout
-      (Node defaultStyle {Style.minSize = pure (Fixed $ Points 100)} [])
+    nodeSize
+      (Node defaultStyle [
+        Node defaultStyle {Style.minSize = pure (Fixed $ Points 100)} [],
+        Node defaultStyle {Style.minSize = pure (Fixed $ Points 100)} []
+      ])
+      (pure Nothing)
+      (pure Nothing)
       (pure MaxContent)
