@@ -11,7 +11,8 @@ data Style = Style
     minSize :: Size Dimension,
     maxSize :: Size Dimension,
     direction :: Direction,
-    display :: Display
+    display :: Display,
+    margin :: Rect Dimension
   }
   deriving (Show)
 
@@ -22,6 +23,7 @@ defaultStyle =
       size = pure . Fixed $ Points 0,
       minSize = pure . Fixed $ Points 0,
       maxSize = pure Auto,
-      direction = Row
+      direction = Row,
+      margin = pure . Fixed $ Points 0
     }
 

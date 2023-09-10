@@ -23,3 +23,33 @@ instance Applicative Size where
 
   Size {width = f, height = g} <*> size =
     Size {width = f size.width, height = g size.height}
+
+data Rect t = Rect
+  { top :: t,
+    left :: t,
+    bottom :: t,
+    right :: t
+  }
+  deriving (Show)
+
+instance Functor Rect where
+  fmap f rect =
+    Rect
+      { top = f rect.top,
+        left = f rect.left,
+        bottom = f rect.bottom,
+        right = f rect.right
+      }
+
+instance Applicative Rect where
+  pure a = Rect a a a a
+
+  Rect {top = t, left = l, bottom = b, right = r} <*> rect =
+    Rect
+      { top = t rect.top,
+        left = l rect.left,
+        bottom = b rect.bottom,
+        right = r rect.right
+      }
+
+horizontalSum rect = rect.left + rect.right
