@@ -9,6 +9,24 @@ import Flex
 import Geometry
 import Style
 
+mkLayout :: Node -> Size AvailableSpace -> Size Float
+mkLayout node availableSpace =
+  layout
+    node
+    (pure Nothing)
+    (fmap intoPixels availableSpace)
+    availableSpace
+
+layout ::
+  Node ->
+  Size (Maybe Float) ->
+  Size (Maybe Float) ->
+  Size AvailableSpace ->
+  Size Float
+layout node knownDims parentSize availableSpace =
+  let styleKnownDims = layoutSize node.style knownDims parentSize availableSpace
+   in mkNodeLayout node styleKnownDims availableSpace
+
 mkNodeLayout :: Node -> Size (Maybe Float) -> Size AvailableSpace -> Size Float
 mkNodeLayout node knownDims availableSpace =
   let items = mkItems node.nodes knownDims
@@ -48,14 +66,6 @@ mkContentWidth items availableSpace =
               Size {width = availableSpace, height = MinContent}
       )
       items
-
-mkLayout :: Style -> Size AvailableSpace -> Size (Maybe Float)
-mkLayout style availableSpace =
-  layoutSize
-    style
-    (pure Nothing)
-    (fmap intoPixels availableSpace)
-    availableSpace
 
 -- | Calculate the size of a block item.
 layoutSize ::

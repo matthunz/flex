@@ -1,14 +1,13 @@
 module Main (main) where
 
+import Block
 import Dimension
 import Flex
-import Block
 import Style
 
 main :: IO ()
 main =
   print $
-    mkNodeLayout
+    mkLayout
       (Node defaultStyle {Style.minSize = pure (Fixed $ Points 100)} [])
-      (pure (Just 100))
       (pure MaxContent)

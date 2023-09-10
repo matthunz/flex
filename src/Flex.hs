@@ -1,10 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedRecordDot #-}
 
 module Flex where
 
-import Data.Function ((&))
-import Dimension
 import Geometry
 import Style
 
@@ -39,4 +36,3 @@ data AvailableSpace = Pixels Float | MinContent | MaxContent
 intoPixels :: AvailableSpace -> Maybe Float
 intoPixels (Pixels px) = Just px
 intoPixels _ = Nothing
-
