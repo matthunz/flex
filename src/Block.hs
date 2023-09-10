@@ -10,10 +10,11 @@ import Flex
 import Geometry
 import Style
 
-
 data BlockItem = BlockItem
   { order :: Int,
     size :: Size (Maybe Float),
+    minSize :: Size (Maybe Float),
+    maxSize :: Size (Maybe Float),
     node :: Node
   }
 
@@ -25,6 +26,8 @@ mkItems nodes innerSize =
           BlockItem
             { order = order,
               size = fMaybeToAbs node.style.size innerSize,
+              minSize = fMaybeToAbs node.style.minSize innerSize,
+              maxSize = fMaybeToAbs node.style.maxSize innerSize,
               node = node
             }
       )
@@ -38,7 +41,7 @@ mkContentWidth items availableSpace =
           width $
             nodeSize
               item.node
-              (pure Nothing)
+              (maybeClamp <$> item.size <*> item.minSize <*> item.maxSize)
               (pure Nothing)
               Size {width = availableSpace, height = MinContent}
       )
@@ -164,10 +167,7 @@ nodeLayout node knownDims parentSize availableSpace =
       border = toAbsWithWidth Style.border
       padding = toAbsWithWidth Style.padding
       inset = (+) <$> border <*> padding
-      (resolvedHeight, children) = layoutHeight2 node.style items width inset
-
-      -- Calculate the height
-      height = fromMaybe resolvedHeight knownDims.height
+      (height, children) = layoutHeight2 node.style items width inset
    in (Size width height, children)
 
 layoutHeight2 :: Style -> [BlockItem] -> Float -> Rect Float -> (Float, [LayoutNode])
@@ -187,7 +187,7 @@ flowLayout2 items outerWidth inset resolvedInset =
       f item (offset, acc) =
         let (itemSize, children) = nodeLayout item.node (pure Nothing) parentSize availableSpace
             layout = Layout {order = item.order, size = itemSize}
-         in (offset + itemSize.height, acc ++ [LayoutNode layout children])
+         in (offset + itemSize.height, LayoutNode layout children : acc)
    in foldr f (resolvedInset.top, []) items
 
 mkLayout :: Node -> Size AvailableSpace -> LayoutNode
