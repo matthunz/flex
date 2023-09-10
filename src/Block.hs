@@ -167,7 +167,13 @@ nodeLayout node knownDims parentSize availableSpace =
       border = toAbsWithWidth Style.border
       padding = toAbsWithWidth Style.padding
       inset = (+) <$> border <*> padding
-      (height, children) = layoutHeight2 node.style items width inset
+      (intrinsicHeight, children) = layoutHeight2 node.style items width inset
+
+      minSize = fMaybeToAbs node.style.minSize parentSize
+      maxSize = fMaybeToAbs node.style.maxSize parentSize
+      innerHeight = clamp intrinsicHeight minSize.height maxSize.height
+
+      height = fromMaybe innerHeight knownDims.height
    in (Size width height, children)
 
 layoutHeight2 :: Style -> [BlockItem] -> Float -> Rect Float -> (Float, [LayoutNode])

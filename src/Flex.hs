@@ -6,14 +6,16 @@ import Geometry
 import Style
 
 maybeClamp :: Maybe Float -> Maybe Float -> Maybe Float -> Maybe Float
-maybeClamp (Just val) minValCell maxValCell =
+maybeClamp val minVal maxVal = (\v -> clamp v minVal maxVal) <$> val
+
+clamp :: Float -> Maybe Float -> Maybe Float -> Float
+clamp val minValCell maxValCell =
   let clamped = case minValCell of
         Just minVal -> max val minVal
         Nothing -> val
-   in Just $ case maxValCell of
+   in case maxValCell of
         Just maxVal -> min clamped maxVal
         Nothing -> clamped
-maybeClamp Nothing _ _ = Nothing
 
 data Node = Node
   { style :: Style,
@@ -24,7 +26,8 @@ data Node = Node
 data Layout = Layout
   { order :: Int,
     size :: Size Float
-  } deriving (Show)
+  }
+  deriving (Show)
 
 data LayoutNode = LayoutNode
   { layout :: Layout,
