@@ -24,11 +24,11 @@ data Node = Node
 data Layout = Layout
   { order :: Int,
     size :: Size Float
-  }
+  } deriving (Show)
 
 data LayoutNode = LayoutNode
-  { size :: Size Float,
-    nodes :: [LayoutNode]
+  { layout :: Layout,
+    children :: [LayoutNode]
   }
   deriving (Show)
 

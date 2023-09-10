@@ -10,39 +10,6 @@ import Flex
 import Geometry
 import Style
 
-mkLayout :: Node -> Size AvailableSpace -> Size Float
-mkLayout node availableSpace =
-  layout
-    node
-    (pure Nothing)
-    (fmap intoPixels availableSpace)
-    availableSpace
-
-layout ::
-  Node ->
-  Size (Maybe Float) ->
-  Size (Maybe Float) ->
-  Size AvailableSpace ->
-  Size Float
-layout node knownDims parentSize availableSpace =
-  let styleKnownDims = layoutSize node.style knownDims parentSize availableSpace
-   in mkNodeLayout node styleKnownDims parentSize availableSpace
-
-mkNodeLayout :: Node -> Size (Maybe Float) -> Size (Maybe Float) -> Size AvailableSpace -> Size Float
-mkNodeLayout node knownDims parentSize availableSpace =
-  let items = mkItems node.nodes knownDims
-      contentWidth = mkContentWidth items availableSpace.width
-      minSize = fMaybeToAbs node.style.minSize parentSize
-      maxSize = fMaybeToAbs node.style.maxSize parentSize
-      minOuterWidth = case minSize.width of
-        Just m -> max m contentWidth
-        Nothing -> contentWidth
-      outerWidth = case maxSize.width of
-        Just m -> min m minOuterWidth
-        Nothing -> minOuterWidth
-   in case knownDims.height of
-        Just height -> Size {width = outerWidth, height = height}
-        Nothing -> error ""
 
 data BlockItem = BlockItem
   { order :: Int,
@@ -177,3 +144,67 @@ nodeSize node knownDims parentSize availableSpace =
       -- Calculate the height
       height = fromMaybe resolvedHeight knownDims.height
    in Size width height
+
+nodeLayout ::
+  Node ->
+  Size (Maybe Float) ->
+  Size (Maybe Float) ->
+  Size AvailableSpace ->
+  (Size Float, [LayoutNode])
+nodeLayout node knownDims parentSize availableSpace =
+  let -- Convert child nodes into block items
+      items = mkItems node.nodes knownDims
+
+      -- Calculate the width
+      width = layoutWidth node.style items parentSize availableSpace
+
+      -- Lazily resolve the height when it's unknown
+      toAbsWithWidth field =
+        fixedToAbsOrZero (Just <$> field node.style) parentSize.width
+      border = toAbsWithWidth Style.border
+      padding = toAbsWithWidth Style.padding
+      inset = (+) <$> border <*> padding
+      (resolvedHeight, children) = layoutHeight2 node.style items width inset
+
+      -- Calculate the height
+      height = fromMaybe resolvedHeight knownDims.height
+   in (Size width height, children)
+
+layoutHeight2 :: Style -> [BlockItem] -> Float -> Rect Float -> (Float, [LayoutNode])
+layoutHeight2 style items outerWidth inset =
+  let border = fixedToAbsOrZero (Just <$> style.border) (Just outerWidth)
+      padding = fixedToAbsOrZero (Just <$> style.border) (Just outerWidth)
+      resolvedInset = (+) <$> border <*> padding
+   in flowLayout2 items outerWidth inset resolvedInset
+
+flowLayout2 :: [BlockItem] -> Float -> Rect Float -> Rect Float -> (Float, [LayoutNode])
+flowLayout2 items outerWidth inset resolvedInset =
+  let innerWidth = outerWidth - horizontalSum inset
+      parentSize = Size {width = Just outerWidth, height = Nothing}
+      availableSpace = Size {width = Pixels innerWidth, height = MinContent}
+
+      f :: BlockItem -> (Float, [LayoutNode]) -> (Float, [LayoutNode])
+      f item (offset, acc) =
+        let (itemSize, children) = nodeLayout item.node (pure Nothing) parentSize availableSpace
+            layout = Layout {order = item.order, size = itemSize}
+         in (offset + itemSize.height, acc ++ [LayoutNode layout children])
+   in foldr f (resolvedInset.top, []) items
+
+mkLayout :: Node -> Size AvailableSpace -> LayoutNode
+mkLayout node availableSpace =
+  layoutNode
+    node
+    (pure Nothing)
+    (fmap intoPixels availableSpace)
+    availableSpace
+
+layoutNode ::
+  Node ->
+  Size (Maybe Float) ->
+  Size (Maybe Float) ->
+  Size AvailableSpace ->
+  LayoutNode
+layoutNode node knownDims parentSize availableSpace =
+  let styleKnownDims = layoutSize node.style knownDims parentSize availableSpace
+      (size, children) = nodeLayout node styleKnownDims parentSize availableSpace
+   in LayoutNode {layout = Layout {order = 0, size = size}, children = children}
