@@ -52,13 +52,20 @@ maybeOr (Just a) _ = Just a
 maybeOr Nothing b = b
 
 -- | Calculate the size of a block item.
-layoutSize :: Style -> Size (Maybe Float) -> Size (Maybe Float) -> Size (Maybe Float)
-layoutSize style knownDims parentSize =
-  let minSize = fMaybeToAbs style.minSize parentSize
+layoutSize ::
+  Style ->
+  Size (Maybe Float) ->
+  Size (Maybe Float) ->
+  Size AvailableSpace ->
+  Size (Maybe Float)
+layoutSize style knownDims parentSize availableSpace =
+  let 
+      minSize = fMaybeToAbs style.minSize parentSize
       maxSize = fMaybeToAbs style.maxSize parentSize
       size = fMaybeToAbs style.size parentSize
       clampedSize = maybeClamp <$> size <*> minSize <*> maxSize
-   in maybeOr <$> knownDims <*> clampedSize
+      availableSpaceSize = Size (intoPixels availableSpace.width) Nothing
+   in maybeOr <$> knownDims <*> (maybeOr <$> clampedSize <*> availableSpaceSize)
 
 data AvailableSpace = Pixels Float | MinContent | MaxContent
 
@@ -72,3 +79,4 @@ mkLayout style availableSpace =
     style
     (pure Nothing)
     (fmap intoPixels availableSpace)
+    availableSpace
