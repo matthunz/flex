@@ -31,4 +31,4 @@ main = hspec $ do
         (pure Nothing)
         (pure Nothing)
         (pure MaxContent)
-        `shouldBe` Size 200 0
+        `shouldBe` Size 200 200

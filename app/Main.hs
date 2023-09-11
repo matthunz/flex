@@ -8,6 +8,6 @@ import Style
 main :: IO ()
 main =
   print $
-    mkLayout
+    layoutNode
       (Node defaultStyle {Style.minSize = pure (Fixed $ Points 200)} [])
       (pure MaxContent)
