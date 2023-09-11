@@ -1,12 +1,24 @@
-module Style where
+module Style
+  ( -- * Style
+    Style (..),
+    defaultStyle,
 
-import Dimension
-import Geometry
+    -- * Properties
+    Direction (..),
+    Display (..),
+  )
+where
 
+import Dimension (Dimension (..), FixedDimension (Points))
+import Geometry (Rect, Size)
+
+-- | Direction to flow a node's children.
 data Direction = Row | Column deriving (Show)
 
+-- | Display kind of a node.
 data Display = Block | None deriving (Eq, Show)
 
+-- | Layout style of a node.
 data Style = Style
   { size :: Size Dimension,
     minSize :: Size Dimension,
@@ -19,6 +31,7 @@ data Style = Style
   }
   deriving (Show)
 
+-- | Default style of a node.
 defaultStyle :: Style
 defaultStyle =
   Style

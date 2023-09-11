@@ -4,7 +4,7 @@
 module Block
   ( -- * Sizing
     -- $sizing
-    layoutSize,
+    nodeSize,
 
     -- * Layout
     -- $layout
@@ -15,10 +15,18 @@ where
 
 import Data.Function ((&))
 import Data.Maybe (fromMaybe)
-import Dimension
+import Dimension (fMaybeToAbs, fixedToAbsOrZero, toAbsOrZero)
 import Flex
-import Geometry
+  ( AvailableSpace (MinContent, Pixels),
+    Layout (Layout, order, size),
+    LayoutNode (..),
+    Node (nodes, style), toPx,
+  )
+import Geometry (Rect (top), Size (..), horizontalSum)
 import Style
+  ( Display (None),
+    Style (border, display, margin, maxSize, minSize, padding, size),
+  )
 
 -- $sizing
 --
@@ -45,7 +53,7 @@ layoutNode node availableSpace =
   layoutNodeInner
     node
     (pure Nothing)
-    (fmap intoPixels availableSpace)
+    (fmap toPx availableSpace)
     availableSpace
 
 -- | Calculate the layout of a node tree with its known dimensions,
@@ -160,7 +168,7 @@ layoutSize style knownDims parentSize availableSpace =
         Size
           { width =
               (\px -> px - horizontalSum margin)
-                <$> intoPixels availableSpace.width,
+                <$> toPx availableSpace.width,
             height = Nothing
           }
    in maybeOr
@@ -204,3 +212,21 @@ layoutNodeFlow items outerWidth inset resolvedInset =
             layout = Layout {order = item.order, size = itemSize}
          in (offset + itemSize.height, LayoutNode layout children : acc)
    in foldr f (resolvedInset.top, []) items
+
+-- Utils
+
+maybeClamp :: Maybe Float -> Maybe Float -> Maybe Float -> Maybe Float
+maybeClamp val minVal maxVal = (\v -> clamp v minVal maxVal) <$> val
+
+clamp :: Float -> Maybe Float -> Maybe Float -> Float
+clamp val minValCell maxValCell =
+  let clamped = case minValCell of
+        Just minVal -> max val minVal
+        Nothing -> val
+   in case maxValCell of
+        Just maxVal -> min clamped maxVal
+        Nothing -> clamped
+
+maybeOr :: Maybe a -> Maybe a -> Maybe a
+maybeOr (Just a) _ = Just a
+maybeOr Nothing b = b

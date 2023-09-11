@@ -1,7 +1,13 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 
-module Geometry where
+module Geometry
+  ( Point (..),
+    Size (..),
+    Rect (..),
+    horizontalSum,
+  )
+where
 
 data Point t = Point
   { x :: t,
