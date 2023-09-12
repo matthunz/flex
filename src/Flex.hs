@@ -20,6 +20,7 @@ data Node = Node
 
 data Layout = Layout
   { order :: Int,
+    position :: Point Float,
     size :: Size Float
   }
   deriving (Show)

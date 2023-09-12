@@ -19,12 +19,12 @@ import Data.Maybe (fromMaybe)
 import Dimension (fMaybeToAbs, fixedToAbsOrZero, toAbsOrZero)
 import Flex
   ( AvailableSpace (MinContent, Pixels),
-    Layout (Layout, order, size),
+    Layout (Layout, order, position, size),
     LayoutNode (..),
     Node (nodes, style),
     toPx,
   )
-import Geometry (Rect (top), Size (..), horizontalSum)
+import Geometry (Point (..), Rect (..), Size (..), horizontalSum)
 import Style
   ( Display (None),
     Style (border, display, margin, maxSize, minSize, padding, size),
@@ -69,7 +69,7 @@ layoutNodeInner ::
 layoutNodeInner node knownDims parentSize availableSpace =
   let styleKnownDims = layoutSize node.style knownDims parentSize availableSpace
       (size, children) = nodeLayout node styleKnownDims parentSize availableSpace
-   in LayoutNode {layout = Layout {order = 0, size = size}, children = children}
+   in LayoutNode {layout = Layout {order = 0, position = Point 0 0, size = size}, children = children}
 
 -----------------------------------------------------------------------------------------
 -- Internal
@@ -184,13 +184,8 @@ layoutWidth style items parentSize availableSpace =
   let contentWidth = mkContentWidth items availableSpace.width
       minSize = fMaybeToAbs style.minSize parentSize
       maxSize = fMaybeToAbs style.maxSize parentSize
-      minOuterWidth = case minSize.width of
-        Just m -> max m contentWidth
-        Nothing -> contentWidth
-      outerWidth = case maxSize.width of
-        Just m -> min m minOuterWidth
-        Nothing -> minOuterWidth
-   in outerWidth
+      minOuterWidth = maybe contentWidth (max contentWidth) minSize.width
+   in maybe minOuterWidth (max minOuterWidth) maxSize.width
 
 layoutNodeHeight :: Style -> [BlockItem] -> Float -> Rect Float -> (Float, [LayoutNode])
 layoutNodeHeight style items outerWidth inset =
@@ -214,7 +209,16 @@ layoutNodeFlow items outerWidth inset resolvedInset =
       f item (offset, acc) =
         let (itemSize, children) =
               nodeLayout item.node (pure Nothing) parentSize availableSpace
-            layout = Layout {order = item.order, size = itemSize}
+            layout =
+              Layout
+                { order = item.order,
+                  position =
+                    Point
+                      { x = resolvedInset.left,
+                        y = offset
+                      },
+                  size = itemSize
+                }
          in (offset + itemSize.height, LayoutNode layout children : acc)
    in foldr f (resolvedInset.top, []) items
 

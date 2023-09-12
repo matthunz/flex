@@ -14,20 +14,8 @@ app nodes =
 
 main :: IO ()
 main =
-  defaultMain
-    [ bgroup
-        "fib"
-        [ bench "1" $
-            whnf
-              app
-              ( replicate
-                  100000
-                  ( Node
-                      defaultStyle
-                        { Style.minSize = pure (Fixed $ Percent 0.5)
-                        }
-                      []
-                  )
-              )
-        ]
-    ]
+  print $
+    app
+      [ Node defaultStyle {Style.minSize = pure $ Fixed $ Points 100} [],
+        Node defaultStyle {Style.minSize = pure $ Fixed $ Points 100} []
+      ]
