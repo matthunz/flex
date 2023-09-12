@@ -1,6 +1,5 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE TupleSections #-}
 
 module Block
   ( -- * Sizing
@@ -72,7 +71,10 @@ layoutNodeInner node knownDims parentSize availableSpace =
       (size, children) = nodeLayout node styleKnownDims parentSize availableSpace
    in LayoutNode {layout = Layout {order = 0, size = size}, children = children}
 
+-----------------------------------------------------------------------------------------
 -- Internal
+-----------------------------------------------------------------------------------------
+
 
 data BlockItem = BlockItem
   { order :: Int,
@@ -217,7 +219,9 @@ layoutNodeFlow items outerWidth inset resolvedInset =
          in (offset + itemSize.height, LayoutNode layout children : acc)
    in foldr f (resolvedInset.top, []) items
 
+-----------------------------------------------------------------------------------------
 -- Utils
+-----------------------------------------------------------------------------------------
 
 maybeClamp :: Maybe Float -> Maybe Float -> Maybe Float -> Maybe Float
 maybeClamp val minVal maxVal = (\v -> clamp v minVal maxVal) <$> val
