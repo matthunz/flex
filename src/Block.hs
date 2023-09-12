@@ -1,5 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE TupleSections #-}
 
 module Block
   ( -- * Sizing
@@ -13,6 +14,7 @@ module Block
   )
 where
 
+import Control.Applicative (Alternative ((<|>)))
 import Data.Function ((&))
 import Data.Maybe (fromMaybe)
 import Dimension (fMaybeToAbs, fixedToAbsOrZero, toAbsOrZero)
@@ -20,7 +22,8 @@ import Flex
   ( AvailableSpace (MinContent, Pixels),
     Layout (Layout, order, size),
     LayoutNode (..),
-    Node (nodes, style), toPx,
+    Node (nodes, style),
+    toPx,
   )
 import Geometry (Rect (top), Size (..), horizontalSum)
 import Style
@@ -152,28 +155,23 @@ layoutSize style knownDims parentSize availableSpace =
 
       -- If both min and max in a given axis are set and max <= min
       -- then this determines the size in that axis.
-      minMaxSize =
-        ( \maybeMin maybeMax ->
-            case (maybeMin, maybeMax) of
-              (Just minVal, Just maxVal) ->
-                if maxVal <= minVal then Just minVal else Nothing
-              _ -> Nothing
-        )
-          <$> minSize
-          <*> maxSize
+      mkMinMaxSize maybeMin maybeMax = do
+        minVal <- maybeMin
+        maxVal <- maybeMax
+        if maxVal <= minVal then Just minVal else Nothing
+      minMaxSize = mkMinMaxSize <$> minSize <*> maxSize
 
       -- Stretch to fit width of definite available space
       margin = toAbsOrZero style.margin parentSize.width
       availableSpaceSize =
         Size
-          { width =
-              (\px -> px - horizontalSum margin)
-                <$> toPx availableSpace.width,
+          { width = (\px -> px - horizontalSum margin) <$> toPx availableSpace.width,
             height = Nothing
           }
-   in maybeOr
-        <$> knownDims
-        <*> (maybeOr <$> minMaxSize <*> (maybeOr <$> clampedSize <*> availableSpaceSize))
+
+      -- Returns x the if it contains a value, otherwise returns y.
+      maybeOr x y = (<|>) <$> x <*> y
+   in maybeOr knownDims . maybeOr minMaxSize $ maybeOr clampedSize availableSpaceSize
 
 layoutWidth ::
   Style ->
@@ -200,7 +198,12 @@ layoutNodeHeight style items outerWidth inset =
       resolvedInset = (+) <$> border <*> padding
    in layoutNodeFlow items outerWidth inset resolvedInset
 
-layoutNodeFlow :: [BlockItem] -> Float -> Rect Float -> Rect Float -> (Float, [LayoutNode])
+layoutNodeFlow ::
+  [BlockItem] ->
+  Float ->
+  Rect Float ->
+  Rect Float ->
+  (Float, [LayoutNode])
 layoutNodeFlow items outerWidth inset resolvedInset =
   let innerWidth = outerWidth - horizontalSum inset
       parentSize = Size {width = Just outerWidth, height = Nothing}
@@ -208,7 +211,8 @@ layoutNodeFlow items outerWidth inset resolvedInset =
 
       f :: BlockItem -> (Float, [LayoutNode]) -> (Float, [LayoutNode])
       f item (offset, acc) =
-        let (itemSize, children) = nodeLayout item.node (pure Nothing) parentSize availableSpace
+        let (itemSize, children) =
+              nodeLayout item.node (pure Nothing) parentSize availableSpace
             layout = Layout {order = item.order, size = itemSize}
          in (offset + itemSize.height, LayoutNode layout children : acc)
    in foldr f (resolvedInset.top, []) items
@@ -226,7 +230,3 @@ clamp val minValCell maxValCell =
    in case maxValCell of
         Just maxVal -> min clamped maxVal
         Nothing -> clamped
-
-maybeOr :: Maybe a -> Maybe a -> Maybe a
-maybeOr (Just a) _ = Just a
-maybeOr Nothing b = b
