@@ -44,6 +44,7 @@ executable flex-exe
   build-depends:
       base >=4.7 && <5
     , flex
+    , criterion
   default-language: Haskell2010
 
 test-suite flex-test

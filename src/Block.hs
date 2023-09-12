@@ -75,7 +75,6 @@ layoutNodeInner node knownDims parentSize availableSpace =
 -- Internal
 -----------------------------------------------------------------------------------------
 
-
 data BlockItem = BlockItem
   { order :: Int,
     size :: Size (Maybe Float),
